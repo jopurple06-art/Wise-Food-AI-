@@ -364,12 +364,31 @@ def auth_screen():
 
 @st.cache_resource
 def load_model():
+    # fallback for Streamlit deployment when model file is not included
     if not os.path.isfile(MODEL_PATH):
-        st.error("Forecasts are unavailable right now. Please contact your administrator.")
-        st.stop()
-    with open(MODEL_PATH, "rb") as f:
-        return pickle.load(f)
+        st.warning("Model file not found; using demo fallback model. Upload model.pkl to repo to enable real predictions.")
 
+        class DemoModel:
+            def predict(self, x):
+                # return a sample constant value or simple pattern
+                return np.array([120.0])
+
+        return DemoModel()
+
+    import pickle
+import streamlit as st
+
+@st.cache_resource
+def load_model():
+    try:
+        with open(MODEL_PATH, "rb") as f:
+            model = pickle.load(f)
+        return model
+    except Exception as e:
+        st.error("Model failed to load.")
+        st.write(e)
+        return None
+model=load_model()
 
 def build_features(price: float, date, orders_last_week: int, orders_earlier: int, day_type: str):
     checkout_price = float(price)
